@@ -1,0 +1,171 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: "Inter", sans-serif; /* Default fallback */
+    --background: 0 0% 100%;
+    --foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 210 40% 98%;
+    --ring: 215 20.2% 65.1%;
+    --radius: 0.5rem;
+
+    /* Glassmorphism Variables */
+    --glass-low: rgba(255, 255, 255, 0.05);
+    --glass-medium: rgba(255, 255, 255, 0.1);
+    --glass-high: rgba(255, 255, 255, 0.2);
+    --glass-border: rgba(255, 255, 255, 0.15);
+  }
+  .dark {
+    --background: 0 0% 0%; /* True Black for OLED */
+
+    --foreground: 213 31% 91%;
+    --muted: 223 47% 11%;
+    --muted-foreground: 215.4 16.3% 56.9%;
+    --popover: 224 71% 4%;
+    --popover-foreground: 215 20.2% 65.1%;
+    --card: 224 71% 4%;
+    --card-foreground: 213 31% 91%;
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 1.2%;
+    --secondary: 222.2 47.4% 11.2%;
+    --secondary-foreground: 210 40% 98%;
+    --accent: 216 34% 17%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+    --ring: 216 34% 17%;
+    --scroll-bar: #d1d1d2;
+    --scroll-bg: #142034;
+  }
+}
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+  .aspect-square {
+    aspect-ratio: 1 / 1;
+  }
+  .aspect-video {
+    aspect-ratio: 16 / 9;
+  }
+  .aspect-4\/3 {
+    aspect-ratio: 4 / 3;
+  }
+  .aspect-3\/2 {
+    aspect-ratio: 3 / 2;
+  }
+  a:focus-visible {
+    @apply outline-none ring-2 ring-primary;
+  }
+}
+kbd {
+  display: inline-block;
+  padding: 0.1em 0.4em;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 0.75em;
+  line-height: 1.4;
+  color: #6b7280;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+.dark kbd {
+  color: #d1d5db;
+  background-color: #374151;
+  border-color: #4b5563;
+}
+*:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+.dark *:focus-visible {
+  outline-color: #60a5fa;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  padding: 8px 16px;
+  background-color: #3b82f6;
+  color: white;
+  z-index: 9999;
+  transition: top 0.2s ease;
+}
+.skip-to-content:focus {
+  top: 0;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-bar) var(--scroll-bg);
+}
+*::-webkit-scrollbar {
+  width: 17px;
+}
+*::-webkit-scrollbar-track {
+  border-radius: 5px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--secondary);
+  border-radius: 14px;
+  border: 3px solid var(--primary);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--tertiary);
+}
+.profile-image {
+  transform: scale(-1, 1);
+}
+
+@layer utilities {
+  @media (prefers-reduced-motion: no-preference) {
+    .text-kinetic-hover {
+      transition: font-weight 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .text-kinetic-hover:hover {
+      font-weight: 600;
+    }
+  }
+
+  .glass-panel {
+    @apply bg-glass-low backdrop-blur-xl border border-glass-border;
+  }
+}

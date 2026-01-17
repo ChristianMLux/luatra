@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "exports": {
+    ".": "./src/index.tsx",
+    "./utils": "./src/utils.ts",
+    "./animations": "./src/animations.ts",
+    "./tailwind-preset": "./src/tailwind-preset.js",
+    "./global.css": "./src/global.css",
     "./*": "./src/*.tsx"
   },
   "scripts": {
@@ -21,6 +26,13 @@
   },
   "dependencies": {
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^2.2.1",
+    "@headlessui/react": "^2.0.0",
+    "@heroicons/react": "^2.1.1",
+    "@radix-ui/react-slot": "^1.0.2",
+    "tailwindcss-animate": "^1.0.7"
   }
 }

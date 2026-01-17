@@ -1,0 +1,25 @@
+{
+  "name": "@repo/core",
+  "version": "0.0.0",
+  "main": "./src/index.tsx",
+  "types": "./src/index.tsx",
+  "exports": {
+    ".": "./src/index.tsx"
+  },
+  "dependencies": {
+    "@types/js-cookie": "^3.0.6",
+    "firebase": "^10.0.0",
+    "js-cookie": "^3.0.5",
+    "jwt-decode": "^4.0.0",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.0.0"
+  }
+}
