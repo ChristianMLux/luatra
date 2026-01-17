@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { AuthProvider } from "@repo/core";
+import { AuthProvider, ThemeProvider } from "@repo/core";
+import { ScrollProgress } from "@repo/ui";
 import "@repo/ui/global.css";
 import "./globals.css";
 
@@ -24,11 +25,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <ScrollProgress alwaysVisible />
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

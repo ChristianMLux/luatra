@@ -55,11 +55,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
           if (!API_URL) return;
 
+          // Add timeout to prevent hanging
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          
           const res = await fetch(`${API_URL}/users/me`, {
               headers: {
                   Authorization: `Bearer ${token}`
-              }
+              },
+              signal: controller.signal
           });
+          clearTimeout(timeoutId);
           
           if (res.ok) {
               const data = await res.json();
@@ -71,63 +77,69 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    // FAST PATH: Check cookie first for instant hydration when navigating between apps
+    // This runs synchronously before Firebase auth initializes
+    const cookieToken = Cookies.get("site-auth");
+    if (cookieToken) {
+      try {
+        const decoded = jwtDecode<SharedUser & { exp: number; user_id?: string; sub?: string; name?: string; picture?: string }>(cookieToken);
+        // Check if token is still valid
+        // Check if token is still valid
+        if (decoded.exp * 1000 > Date.now()) {
+          setUser({
+            uid: decoded.user_id || decoded.sub || "",
+            email: decoded.email,
+            displayName: decoded.name,
+            photoURL: decoded.picture
+          });
+          setToken(cookieToken);
+          setLoading(false); // Unblock UI immediately!
+        }
+      } catch (e) {
+        // Invalid cookie, will fall through to Firebase
+      }
+    }
+
+    // NORMAL PATH: Firebase listener for full auth sync
     const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
-      console.log("Auth: State changed", firebaseUser ? firebaseUser.uid : "No Firebase user");
-      
       if (firebaseUser) {
-        // 1. Firebase is Active
-        setUser({
+        // Firebase is active - update with fresh data
+        const newUser = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL
+        };
+        
+        setUser(prev => {
+           if (prev && prev.uid === newUser.uid && prev.email === newUser.email) return prev;
+           return newUser;
         });
         
         try {
             const t = await firebaseUser.getIdToken();
             setToken(t);
             // Sync to Cookie for other apps on localhost
-            Cookies.set("site-auth", t, { domain: 'localhost', expires: 1 }); // 1 day
-            await fetchUserProfile(t);
+            // Sync to Cookie for other apps on localhost - strict sameSite for security
+            Cookies.set("site-auth", t, { expires: 1, sameSite: 'strict' });
+            setLoading(false);
+            
+            // Fetch profile in background
+            fetchUserProfile(t).catch(e => console.error("Background profile fetch failed", e));
         } catch (err) {
             console.error("Auth: Error getting token", err);
+            setLoading(false);
         }
       } else {
-        // 2. Firebase is inactive, check Cookie (Shared Auth)
-        const cookieToken = Cookies.get("site-auth");
-        if (cookieToken) {
-           console.log("Auth: Found cookie token, attempting hydrate...");
-           try {
-             // Decode JWT to get basic user info without needing Firebase SDK to be hydrated (which requires re-login)
-             const decoded: any = jwtDecode(cookieToken);
-             // Basic check if expired
-             if (decoded.exp * 1000 > Date.now()) {
-                setUser({
-                    uid: decoded.user_id || decoded.sub,
-                    email: decoded.email,
-                    displayName: decoded.name,
-                    photoURL: decoded.picture
-                });
-                setToken(cookieToken);
-                // We don't fetch full profile here to avoid complexity, but we could
-             } else {
-                console.log("Auth: Cookie token expired");
-                setToken(null);
-                setUser(null);
-                Cookies.remove("site-auth", { domain: 'localhost' });
-             }
-           } catch(e) {
-             console.error("Auth: Invalid cookie token", e);
-             setToken(null);
-             setUser(null);
-           }
-        } else {
+        // Firebase says no user - check if we have cookie fallback (already handled above)
+        // If we get here and loading is still true, there's no valid session
+        if (!Cookies.get("site-auth")) {
           setToken(null);
           setUser(null);
           setUserData(null);
+          setLoading(false);
         }
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -152,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
-      Cookies.remove("site-auth", { domain: 'localhost' });
+      Cookies.remove("site-auth");
       setToken(null);
       setUserData(null);
       setUser(null);

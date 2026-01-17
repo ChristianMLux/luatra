@@ -1,9 +1,8 @@
 "use client";
 
 import { useAuth } from "@repo/core";
-import { Button } from "@repo/ui"; 
+import { Button, ThemeToggle } from "@repo/ui"; 
 import { HubGrid } from "../components/dashboard/HubGrid";
-import styles from "./page.module.css";
 
 export default function Home() {
   const { user, signInWithGoogle, signOut, loading } = useAuth();
@@ -17,16 +16,19 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-cyber-cyan/30">
       
-      {/* Navbar Placeholder (To be componentized) */}
+      {/* Navbar */}
       <nav className="border-b border-glass-border bg-glass-low backdrop-blur sticky top-0 z-50">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="font-bold text-xl tracking-tighter">Luatra<span className="text-cyber-neon">.OS</span></div>
-          {user && (
-             <div className="flex items-center gap-4">
-                <span className="text-xs font-mono text-muted-foreground hidden sm:block">Logged in as {user.email}</span>
-                <Button variant="outline" size="sm" onClick={() => signOut()}>Disconnect</Button>
-             </div>
-          )}
+          <div className="flex items-center gap-4">
+            {user && (
+               <>
+                 <span className="text-xs font-mono text-muted-foreground hidden sm:block">Logged in as {user.email}</span>
+                 <Button variant="outline" size="sm" onClick={() => signOut()}>Disconnect</Button>
+               </>
+            )}
+            <ThemeToggle size="sm" />
+          </div>
         </div>
       </nav>
 

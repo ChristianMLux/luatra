@@ -33,26 +33,26 @@
     --glass-border: rgba(255, 255, 255, 0.15);
   }
   .dark {
-    --background: 0 0% 0%; /* True Black for OLED */
+    --background: 220 10% 4%; /* Warmer dark grey instead of pure black */
 
     --foreground: 213 31% 91%;
-    --muted: 223 47% 11%;
+    --muted: 220 15% 13%;
     --muted-foreground: 215.4 16.3% 56.9%;
-    --popover: 224 71% 4%;
+    --popover: 220 15% 6%;
     --popover-foreground: 215 20.2% 65.1%;
-    --card: 224 71% 4%;
+    --card: 220 15% 7%; /* Slightly lighter for visible card surfaces */
     --card-foreground: 213 31% 91%;
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
+    --border: 220 15% 15%;
+    --input: 220 15% 15%;
     --primary: 217.2 91.2% 59.8%;
     --primary-foreground: 222.2 47.4% 1.2%;
-    --secondary: 222.2 47.4% 11.2%;
+    --secondary: 220 15% 13%;
     --secondary-foreground: 210 40% 98%;
-    --accent: 216 34% 17%;
+    --accent: 220 15% 15%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --ring: 216 34% 17%;
+    --ring: 220 15% 20%;
     --scroll-bar: #d1d1d2;
     --scroll-bg: #142034;
   }

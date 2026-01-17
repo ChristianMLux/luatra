@@ -9,6 +9,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { AppCard } from "./AppCard";
 import { WidgetPlaceholder } from "./WidgetPlaceholder";
+import { JobPipelineWidget } from "./JobPipelineWidget";
+import { ActivityWidget } from "./ActivityWidget";
 
 export function HubGrid() {
   return (
@@ -43,7 +45,7 @@ export function HubGrid() {
       <section>
         <h2 className="text-2xl font-light mb-6 text-foreground tracking-tight flex items-center gap-2">
           Operations Overview 
-          <span className="text-xs font-mono text-muted-foreground bg-glass-medium px-2 py-1 rounded-full">v0.1</span>
+          <span className="text-xs font-mono text-muted-foreground bg-glass-medium px-2 py-1 rounded-full">v0.2</span>
         </h2>
         
         <MasonryGrid columnCount={3} gap={24}>
@@ -56,37 +58,11 @@ export function HubGrid() {
             </div>
           </WidgetPlaceholder>
 
-          <WidgetPlaceholder title="Recent Agent Activity" minHeight="h-[300px]">
-            <ul className="w-full text-xs space-y-3 font-mono text-muted-foreground">
-              <li className="flex justify-between border-b border-glass-border pb-1">
-                <span>[Finatra]</span> <span>Analyzed "Q3 Expenses"</span>
-              </li>
-              <li className="flex justify-between border-b border-glass-border pb-1">
-                <span>[Joatra]</span> <span>Scanned 5 new listings</span>
-              </li>
-              <li className="flex justify-between border-b border-glass-border pb-1">
-                <span>[System]</span> <span>Backup complete</span>
-              </li>
-            </ul>
-          </WidgetPlaceholder>
+          {/* Recent Activity Widget - LIVE DATA */}
+          <ActivityWidget />
 
-           {/* Joatra Widgets */}
-           <WidgetPlaceholder title="Application Pipeline" minHeight="h-[200px]">
-             <div className="grid grid-cols-3 gap-2 w-full text-center">
-                <div className="bg-glass-high p-2 rounded">
-                  <div className="text-lg font-bold">12</div>
-                  <div className="text-[10px] uppercase">Applied</div>
-                </div>
-                <div className="bg-glass-high p-2 rounded">
-                  <div className="text-lg font-bold text-yellow-500">4</div>
-                  <div className="text-[10px] uppercase">Interview</div>
-                </div>
-                <div className="bg-glass-high p-2 rounded">
-                  <div className="text-lg font-bold text-green-500">1</div>
-                  <div className="text-[10px] uppercase">Offer</div>
-                </div>
-             </div>
-          </WidgetPlaceholder>
+          {/* Joatra Widget - LIVE DATA */}
+          <JobPipelineWidget />
 
           <WidgetPlaceholder title="System Status" state="loading" minHeight="h-[150px]" />
           
