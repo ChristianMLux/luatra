@@ -7,8 +7,8 @@ import { Button } from "@repo/ui";
 import { UserProfile, Job, CVTemplate } from "@/lib/types";
 import CVPdfDocument from "./CVPdfDocument";
 import { Download, Loader2 } from "lucide-react";
-import "react-pdf/dist/esm/Page/AnnotationLayer.css";
-import "react-pdf/dist/esm/Page/TextLayer.css";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
 
 // Worker configuration
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;

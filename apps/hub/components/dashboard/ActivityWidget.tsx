@@ -36,8 +36,8 @@ function ActivityItem({ activity }: { activity: Activity }) {
   return (
     <li className="flex justify-between items-start gap-4 border-b border-glass-border pb-2 last:border-0">
       <div className="flex-1 min-w-0">
-        <span className={`text-[10px] font-mono ${appConfig.color}`}>
-          [{appConfig.label}]
+        <span className={`text-[10px] font-mono ${appConfig?.color || 'text-muted-foreground'}`}>
+          [{appConfig?.label || activity.app}]
         </span>
         <p className="text-xs text-foreground truncate mt-0.5">
           {activity.title}
