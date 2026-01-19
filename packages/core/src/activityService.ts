@@ -38,10 +38,24 @@ export async function logActivity(
       createdAt: Timestamp.now(),
     };
 
-    // Remove undefined keys because Firestore throws error on undefined
-    const cleanActivity = Object.fromEntries(
-      Object.entries(activity).filter(([_, v]) => v !== undefined)
-    );
+    // Recursively remove undefined values
+    const removeUndefined = (obj: any): any => {
+      if (Array.isArray(obj)) {
+        return obj.map(removeUndefined);
+      } else if (obj !== null && typeof obj === 'object') {
+        // Handle Firestore Timestamp specifically - don't clone it
+        if (obj instanceof Timestamp) return obj;
+        
+        return Object.fromEntries(
+          Object.entries(obj)
+            .filter(([_, v]) => v !== undefined)
+            .map(([k, v]) => [k, removeUndefined(v)])
+        );
+      }
+      return obj;
+    };
+
+    const cleanActivity = removeUndefined(activity);
 
     const docRef = await addDoc(collection(db, "activities"), cleanActivity);
     return docRef.id;
@@ -105,3 +119,54 @@ export const ActivityLogger = {
       metadata: { company },
     }),
 };
+
+export const ChronatraLogger = {
+  timerStarted: (userId: string, description: string, entryId: string, projectId?: string, projectName?: string) => {
+    let title = description || 'Started timer';
+    if (projectName) {
+      title += ` (${projectName})`;
+    }
+    
+    return logActivity(userId, {
+      app: 'chronatra',
+      action: 'timer_started',
+      title: title,
+      metadata: { entryId, projectId, projectName },
+    });
+  },
+
+  timerStopped: (userId: string, durationMs: number, entryId: string, description?: string, projectName?: string) => {
+    const seconds = Math.floor((durationMs / 1000) % 60);
+    const minutes = Math.floor((durationMs / 60000) % 60);
+    const hours = Math.floor(durationMs / 3600000);
+    
+    let durationStr = '';
+    if (hours > 0) durationStr = `${hours}h ${minutes}m ${seconds}s`;
+    else if (minutes > 0) durationStr = `${minutes}m ${seconds}s`;
+    else durationStr = `${seconds}s`;
+    
+    let title = `Tracked ${durationStr}`;
+    if (description) {
+      title += `: ${description}`;
+    }
+    if (projectName) {
+      title += ` (${projectName})`;
+    }
+
+    return logActivity(userId, {
+      app: 'chronatra',
+      action: 'timer_stopped',
+      title: title,
+      metadata: { entryId, duration: durationMs, description, projectName },
+    });
+  },
+
+  focusSessionCompleted: (userId: string, durationMs: number) =>
+    logActivity(userId, {
+      app: 'chronatra',
+      action: 'focus_completed',
+      title: 'Completed focus session',
+      metadata: { duration: durationMs },
+    }),
+};
+

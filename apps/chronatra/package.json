@@ -1,24 +1,29 @@
 {
-  "name": "hub",
+  "name": "chronatra",
   "version": "0.1.0",
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "next dev --port 3003",
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
-    "@heroicons/react": "^2.1.1",
+    "@react-pdf/renderer": "^4.3.2",
     "@repo/core": "workspace:*",
     "@repo/ui": "workspace:*",
+    "clsx": "^2.1.0",
     "date-fns": "^4.1.0",
     "firebase": "^10.0.0",
+    "lucide-react": "^0.562.0",
     "next": "16.1.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^2.2.1",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",

@@ -11,6 +11,7 @@ import { AppCard } from "./AppCard";
 import { WidgetPlaceholder } from "./WidgetPlaceholder";
 import { JobPipelineWidget } from "./JobPipelineWidget";
 import { ActivityWidget } from "./ActivityWidget";
+import { ChronatraWidget } from "./ChronatraWidget";
 
 export function HubGrid() {
   return (
@@ -38,6 +39,14 @@ export function HubGrid() {
             icon={<BriefcaseIcon className="w-6 h-6" />}
             status="online"
           />
+          <AppCard
+            appName="Chronatra"
+            description="Time Intelligence & Work-Life Balance. Smart timer, focus mode, and automatic timesheet generation."
+            href="http://localhost:3003"
+            port={3003}
+            icon={<ClockIcon className="w-6 h-6" />}
+            status="online"
+          />
         </div>
       </section>
 
@@ -58,11 +67,15 @@ export function HubGrid() {
             </div>
           </WidgetPlaceholder>
 
+
           {/* Recent Activity Widget - LIVE DATA */}
           <ActivityWidget />
 
           {/* Joatra Widget - LIVE DATA */}
           <JobPipelineWidget />
+
+          {/* Chronatra Widget - LIVE DATA */}
+          <ChronatraWidget />
 
           <WidgetPlaceholder title="System Status" state="loading" minHeight="h-[150px]" />
           

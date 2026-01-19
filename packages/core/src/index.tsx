@@ -5,3 +5,4 @@ export * from "./useJobStats";
 export * from "./activityTypes";
 export * from "./activityService";
 export * from "./useRecentActivities";
+export * from "./useChronatraStats";

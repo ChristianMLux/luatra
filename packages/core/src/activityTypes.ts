@@ -3,7 +3,7 @@ import { Timestamp } from "firebase/firestore";
 /**
  * Available app names in the Luatra ecosystem
  */
-export type AppName = 'joatra' | 'finatra' | 'hub' | 'system';
+export type AppName = 'joatra' | 'finatra' | 'hub' | 'system' | 'chronatra';
 
 /**
  * Activity record stored in Firestore
