@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@repo/core";
-import { Card, Skeleton, Select, Button } from "@repo/ui";
+import { Card, Skeleton, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Button } from "@repo/ui";
 import { FileBarChart } from "lucide-react";
 import { getProjects } from "@/lib/services/projectService";
 import { getTimeEntriesByDateRange } from "@/lib/services/timeEntryService";
@@ -24,6 +24,7 @@ export default function ReportsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState("month"); // 'month' | 'week'
+  const [projectFilter, setProjectFilter] = useState("all");
 
   useEffect(() => {
     async function fetchData() {
@@ -47,7 +48,8 @@ export default function ReportsPage() {
         // Fetch Entries
         const entriesData = await getTimeEntriesByDateRange(user.uid, startDate, now);
         // Filter out running entries for report
-        setEntries(entriesData.filter(e => !e.isRunning));
+        const filtered = entriesData.filter(e => !e.isRunning);
+        setEntries(filtered);
       } catch (error) {
         console.error("Error loading report data:", error);
       } finally {
@@ -100,12 +102,30 @@ export default function ReportsPage() {
           
           <div className="flex gap-4 items-center">
             <Select 
-              value={range} 
-              onChange={(e) => setRange(e.target.value)}
-              className="w-40"
+              value={projectFilter} 
+              onValueChange={setProjectFilter}
             >
-              <option value="month">This Month</option>
-              <option value="week">Last 7 Days</option>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="All Projects" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Projects</SelectItem>
+                {projects.map(p => (
+                  <SelectItem key={p.id ?? "unknown"} value={p.id || "unknown"}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select 
+              value={range} 
+              onValueChange={setRange}
+            >
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Select Range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="month">This Month</SelectItem>
+                <SelectItem value="week">Last 7 Days</SelectItem>
+              </SelectContent>
             </Select>
 
             {entries.length > 0 && (
@@ -155,22 +175,24 @@ export default function ReportsPage() {
              </div>
              
              {/* List View */}
-             <Card className="divide-y divide-border">
-                {entries.map(entry => {
-                   const project = projects.find(p => p.id === entry.projectId);
-                   return (
-                     <div key={entry.id} className="p-4 flex justify-between items-center text-sm">
-                       <div>
-                         <div className="font-medium text-foreground">{project?.name || "No Project"}</div>
-                         <div className="text-muted-foreground">{entry.description || "No description"}</div>
-                       </div>
-                       <div className="font-mono">
-                         {((entry.duration || 0) / 60000).toFixed(0)}m
-                       </div>
-                     </div>
-                   );
-                })}
-             </Card>
+              <Card className="divide-y divide-border">
+                 {entries
+                   .filter(e => projectFilter === 'all' || e.projectId === projectFilter)
+                   .map(entry => {
+                    const project = projects.find(p => p.id === entry.projectId);
+                    return (
+                      <div key={entry.id} className="p-4 flex justify-between items-center text-sm">
+                        <div>
+                          <div className="font-medium text-foreground">{project?.name || "No Project"}</div>
+                          <div className="text-muted-foreground">{entry.description || "No description"}</div>
+                        </div>
+                        <div className="font-mono">
+                          {((entry.duration || 0) / 60000).toFixed(0)}m
+                        </div>
+                      </div>
+                    );
+                 })}
+              </Card>
           </div>
         )}
       </div>

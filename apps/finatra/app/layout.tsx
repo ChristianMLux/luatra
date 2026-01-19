@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { AuthProvider } from "@repo/core";
+import { AuthProvider, ThemeProvider } from "@repo/core";
+import { Toaster, ScrollProgress } from "@repo/ui";
+import { Navbar } from "@/components/layout/Navbar";
 import "@repo/ui/global.css";
 import "./globals.css";
 
@@ -14,8 +16,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Luatra Finatra",
-  description: "Financial Agent",
+  title: "Finatra - Financial Intelligence",
+  description: "AI-powered financial tracking and analysis",
 };
 
 export default function RootLayout({
@@ -24,11 +26,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased`}>
+        <ThemeProvider>
+          <AuthProvider>
+              <ScrollProgress alwaysVisible />
+              <Navbar />
+              <main className="flex-1">
+                {children}
+              </main>
+              <Toaster />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

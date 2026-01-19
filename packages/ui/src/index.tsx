@@ -15,6 +15,8 @@ export * from "./ProjectCardSkeleton";
 export * from "./Toaster";
 export * from "./ThemeToggle";
 export * from "./ScrollProgress";
+export * from "./ScrollArea";
+export * from "./Progress";
 
 export * from "./utils";
 export * from "./animations";

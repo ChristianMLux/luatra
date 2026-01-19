@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button, Card, Input, Select } from "@repo/ui";
+import { Button, Card, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui";
 import { Play, Square, Clock } from "lucide-react";
 import { useAuth } from "@repo/core";
 import { useTimer } from "@/lib/context/TimerContext";
@@ -33,12 +33,15 @@ export function TimerWidget() {
   useEffect(() => {
     if (timerState.isRunning && timerState.activeProjectId) {
       setSelectedProjectId(timerState.activeProjectId);
+    } else if (timerState.isRunning && !timerState.activeProjectId) {
+       setSelectedProjectId("no_project");
     }
   }, [timerState.isRunning, timerState.activeProjectId]);
 
   const handleStart = async () => {
-    const selectedProject = projects.find(p => p.id === selectedProjectId);
-    await startTimer(selectedProjectId || undefined, description, selectedProject?.name);
+    const activeProject = (selectedProjectId === "no_project" || selectedProjectId === "unknown") ? "" : selectedProjectId;
+    const selectedProject = projects.find(p => p.id === activeProject);
+    await startTimer(activeProject || undefined, description, selectedProject?.name);
   };
 
   const handleStop = async () => {
@@ -82,16 +85,19 @@ export function TimerWidget() {
           <div className="w-1/3">
             <Select
               value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              disabled={timerState.isRunning} // Lock project when running for now (context doesn't support changing project mid-timer easily yet)
-              className={selectedProjectId ? "text-primary font-medium" : "text-muted-foreground"}
+              onValueChange={setSelectedProjectId}
             >
-              <option value="">No Project</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id} className="text-foreground">
-                  {project.name}
-                </option>
-              ))}
+              <SelectTrigger className="w-full h-10">
+                <SelectValue placeholder="No Project" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="no_project">No Project</SelectItem>
+                {projects.map((p) => (
+                  <SelectItem key={p.id ?? "unknown"} value={p.id || "unknown"}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
         </div>
