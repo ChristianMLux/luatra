@@ -11,6 +11,8 @@ This monorepo uses [TurboRepo](https://turbo.build/repo) to manage the following
     -   The Financial Agent interface & automated tooling generation (Chat & Visualization).
 -   **Joatra (`apps/joatra`)** - `http://localhost:3002`
     -   Job Application Tracker Agents.
+-   **Chronatra (`apps/chronatra`)** - `http://localhost:3003`
+    -   Time Tracking & Focus Timer functionality.
 -   **Agent Backend (`apps/agent-backend`)**
     -   Python FastAPI backend (the brain of the agents).
 
@@ -33,7 +35,7 @@ pnpm install
 ```
 
 ### 2. Configure Environment
-Create a `.env.local` file in `apps/hub`, `apps/finatra`, and `apps/joatra` with your Firebase credentials:
+Create a `.env.local` file in `apps/hub`, `apps/finatra`, `apps/joatra`, and `apps/chronatra` with your Firebase credentials:
 ```env
 NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
