@@ -17,6 +17,16 @@ export interface TimeEntry {
   hourlyRate?: number;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
+  /** Set when the end time was entered later because the timer was left running. */
+  correction?: {
+    reason: string;
+    evidence?: string;
+    runningMsWhenFlagged?: number;
+    flaggedAt?: Timestamp;
+    correctedAt?: Timestamp;
+  };
+  originalEndTime?: Timestamp;
+  originalDuration?: number;
 }
 
 /**

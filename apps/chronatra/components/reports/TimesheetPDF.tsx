@@ -183,12 +183,20 @@ const TimesheetPDF = ({ entries, projects, startDate, endDate, userName }: Times
                   <Text style={styles.tableCell}>{entry.description || 'No description'}</Text>
                 </View>
                 <View style={styles.tableCol}>
-                  <Text style={styles.tableCell}>{formatDuration(entry.duration || 0)}</Text>
+                  <Text style={styles.tableCell}>
+                    {formatDuration(entry.duration || 0)}{entry.correction ? ' *' : ''}
+                  </Text>
                 </View>
               </View>
              );
           })}
         </View>
+
+        {entries.some((entry) => entry.correction) && (
+          <Text style={styles.tableCell}>
+            * End time entered afterwards because the timer was left running.
+          </Text>
+        )}
       </Page>
     </Document>
   );

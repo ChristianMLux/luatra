@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth, useChronatraStats } from "@repo/core";
+import { useAuth, useChronatraStats, isStaleTimer } from "@repo/core";
 import { ClockIcon, PlayIcon, PauseIcon } from "@heroicons/react/24/outline";
 
 // Duration formatter including seconds
@@ -30,8 +30,14 @@ export function ChronatraWidget() {
     ? formatTime(Date.now() - stats.activeEntryStartTime) 
     : "0m";
 
+  // A timer left running overnight must not be stopped with "now" from here;
+  // Chronatra asks for the real end time instead.
+  const staleTimer =
+    stats.activeEntryStartTime !== undefined && isStaleTimer(stats.activeEntryStartTime);
+
   const handleStop = async () => {
     if (!user || !stats.activeEntryId || !stats.activeEntryStartTime) return;
+    if (isStaleTimer(stats.activeEntryStartTime)) return;
     
     setStopping(true);
     try {
@@ -76,7 +82,8 @@ export function ChronatraWidget() {
         {stats.activeTimer ? (
           <button 
             onClick={handleStop}
-            disabled={stopping}
+            disabled={stopping || staleTimer}
+            title={staleTimer ? "Enter the real end time in Chronatra" : undefined}
             className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyber-neon/10 border border-cyber-neon/20 hover:bg-destructive/20 hover:border-destructive/30 hover:text-destructive group/stop transition-all"
           >
             <span className="relative flex h-2 w-2">
@@ -110,6 +117,11 @@ export function ChronatraWidget() {
              <div className="text-sm text-cyber-neon font-mono mt-1">
                {activeDuration} elapsed
              </div>
+             {staleTimer && (
+               <p role="status" className="text-xs text-destructive mt-2">
+                 Running for over 14 hours. Open Chronatra to enter the real end time.
+               </p>
+             )}
           </div>
         ) : (
           <div>
