@@ -2,9 +2,10 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { Timestamp, getDoc, doc } from "firebase/firestore";
-import { useAuth, db } from "@repo/core"; // db is exported from core as well, or use local
+import { useAuth, db, isStaleTimer } from "@repo/core"; // db is exported from core as well, or use local
 import { TimerState, TimeEntry } from "../types";
 import { addTimeEntry, stopTimeEntry, getRunningEntry } from "../services/timeEntryService";
+import { StaleTimerDialog } from "@/components/timer/StaleTimerDialog";
 
 export interface TimerContextType {
   timerState: TimerState;
@@ -12,6 +13,8 @@ export interface TimerContextType {
   stopTimer: () => Promise<void>;
   updateDescription: (description: string) => void;
   formattedTime: string;
+  /** True when the running timer is far past a workday and needs a real end time. */
+  staleTimer: boolean;
 }
 
 const defaultTimerState: TimerState = {
@@ -29,6 +32,7 @@ const TimerContext = createContext<TimerContextType>({
   stopTimer: async () => {},
   updateDescription: () => {},
   formattedTime: "00:00:00",
+  staleTimer: false,
 });
 
 export function TimerProvider({ children }: { children: React.ReactNode }) {
@@ -130,8 +134,15 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     [user]
   );
 
+  const staleTimer =
+    timerState.isRunning &&
+    timerState.startTime !== null &&
+    isStaleTimer(timerState.startTime.getTime(), timerState.startTime.getTime() + timerState.elapsedMs);
+
   const stopTimer = useCallback(async () => {
     if (!user || !timerState.activeEntryId) return;
+    // A stale timer must not be stopped with "now"; StaleTimerDialog asks for the real end.
+    if (timerState.startTime && isStaleTimer(timerState.startTime.getTime())) return;
 
     const projectName = timerState.activeProjectName;
 
@@ -144,7 +155,26 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     );
 
     setTimerState(defaultTimerState);
-  }, [user, timerState.activeEntryId, timerState.elapsedMs, timerState.activeDescription, timerState.activeProjectName]);
+  }, [user, timerState.activeEntryId, timerState.startTime, timerState.elapsedMs, timerState.activeDescription, timerState.activeProjectName]);
+
+  const resolveStaleTimer = useCallback(
+    async (endTime: Date) => {
+      if (!user || !timerState.activeEntryId || !timerState.startTime) return;
+
+      await stopTimeEntry(
+        user.uid,
+        timerState.activeEntryId,
+        endTime.getTime() - timerState.startTime.getTime(),
+        timerState.activeDescription,
+        timerState.activeProjectName,
+        endTime,
+        { runningMsWhenFlagged: timerState.elapsedMs, flaggedAt: new Date() },
+      );
+
+      setTimerState(defaultTimerState);
+    },
+    [user, timerState.activeEntryId, timerState.startTime, timerState.elapsedMs, timerState.activeDescription, timerState.activeProjectName],
+  );
 
   const updateDescription = useCallback((description: string) => {
     setTimerState((prev) => ({ ...prev, activeDescription: description }));
@@ -158,9 +188,17 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
         stopTimer,
         updateDescription,
         formattedTime,
+        staleTimer,
       }}
     >
       {children}
+      {staleTimer && timerState.startTime && (
+        <StaleTimerDialog
+          startTime={timerState.startTime}
+          elapsedMs={timerState.elapsedMs}
+          onResolve={resolveStaleTimer}
+        />
+      )}
     </TimerContext.Provider>
   );
 }

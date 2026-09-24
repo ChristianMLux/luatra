@@ -44,8 +44,16 @@ export const addTimeEntry = async (
   return docRef.id;
 };
 
+export interface StaleTimerCorrection {
+  /** How long the timer had been running when it was noticed. */
+  runningMsWhenFlagged: number;
+  flaggedAt: Date;
+}
+
 /**
- * Stop a running time entry
+ * Stop a running time entry.
+ * `endTime` defaults to now; pass it (with `correction`) when the user
+ * enters the real end of a timer that was left running by accident.
  */
 export const stopTimeEntry = async (
   userId: string,
@@ -53,14 +61,24 @@ export const stopTimeEntry = async (
   durationMs: number,
   description?: string,
   projectName?: string,
+  endTime?: Date,
+  correction?: StaleTimerCorrection,
 ): Promise<void> => {
   const entryRef = doc(db, COLLECTION_PATH, entryId);
-  
+
   await updateDoc(entryRef, {
-    endTime: Timestamp.now(),
+    endTime: endTime ? Timestamp.fromDate(endTime) : Timestamp.now(),
     duration: durationMs,
     isRunning: false,
     updatedAt: serverTimestamp(),
+    ...(correction && {
+      correction: {
+        reason: "stale-timer",
+        runningMsWhenFlagged: correction.runningMsWhenFlagged,
+        flaggedAt: Timestamp.fromDate(correction.flaggedAt),
+        correctedAt: serverTimestamp(),
+      },
+    }),
   });
 
   // Log activity for Hub widget

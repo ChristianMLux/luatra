@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { format, startOfMonth, subMonths } from "date-fns";
 import { useAuth } from "@repo/core";
-import { Card, Skeleton, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Button } from "@repo/ui";
+import { Card, Input, Skeleton, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Button } from "@repo/ui";
 import { FileBarChart } from "lucide-react";
 import { getProjects } from "@/lib/services/projectService";
 import { getTimeEntriesByDateRange } from "@/lib/services/timeEntryService";
 import { Project, TimeEntry } from "@/lib/types";
 import dynamic from "next/dynamic";
 import TimesheetPDF from "@/components/reports/TimesheetPDF";
+import { DATE_INPUT_FORMAT, RANGE_LABELS, resolveRange, type RangeKey } from "@/lib/reportRange";
 
 const PDFDownloadLink = dynamic(
   () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
@@ -23,42 +25,65 @@ export default function ReportsPage() {
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [range, setRange] = useState("month"); // 'month' | 'week'
+  const [range, setRange] = useState<RangeKey>("month");
+  const [customFrom, setCustomFrom] = useState(() =>
+    format(startOfMonth(subMonths(new Date(), 1)), DATE_INPUT_FORMAT),
+  );
+  const [customTo, setCustomTo] = useState(() => format(new Date(), DATE_INPUT_FORMAT));
   const [projectFilter, setProjectFilter] = useState("all");
 
+  const period = useMemo(
+    () => resolveRange(range, customFrom, customTo, new Date()),
+    [range, customFrom, customTo],
+  );
+  const periodStartMs = period?.start.getTime();
+  const periodEndMs = period?.end.getTime();
+
+  // Projects don't depend on the period, so they are fetched once per user.
   useEffect(() => {
-    async function fetchData() {
-      if (!user) return;
-      setLoading(true);
-      try {
-        // Fetch Projects
-        const projectsData = await getProjects(user.uid);
-        setProjects(projectsData);
+    if (!user) return;
+    getProjects(user.uid)
+      .then(setProjects)
+      .catch((error) => console.error("Error loading projects:", error));
+  }, [user]);
 
-        // Calculate Date Range
-        const now = new Date();
-        const startDate = new Date();
-        if (range === "month") {
-          startDate.setMonth(now.getMonth(), 1); // Start of month
-        } else {
-          startDate.setDate(now.getDate() - 7); // Last 7 days
-        }
-        startDate.setHours(0, 0, 0, 0);
-
-        // Fetch Entries
-        const entriesData = await getTimeEntriesByDateRange(user.uid, startDate, now);
-        // Filter out running entries for report
-        const filtered = entriesData.filter(e => !e.isRunning);
-        setEntries(filtered);
-      } catch (error) {
-        console.error("Error loading report data:", error);
-      } finally {
-        setLoading(false);
-      }
+  useEffect(() => {
+    if (!user || periodStartMs === undefined || periodEndMs === undefined) {
+      setEntries([]);
+      setLoading(false);
+      return;
     }
 
-    fetchData();
-  }, [user, range]);
+    let cancelled = false;
+    setLoading(true);
+    getTimeEntriesByDateRange(user.uid, new Date(periodStartMs), new Date(periodEndMs))
+      .then((entriesData) => {
+        // Running entries have no final duration yet, so they stay out of reports.
+        if (!cancelled) setEntries(entriesData.filter((e) => !e.isRunning));
+      })
+      .catch((error) => console.error("Error loading report data:", error))
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, periodStartMs, periodEndMs]);
+
+  // The project filter applies to the list, the totals and the PDF alike.
+  const visibleEntries = useMemo(
+    () => entries.filter((e) => projectFilter === "all" || e.projectId === projectFilter),
+    [entries, projectFilter],
+  );
+  const projectsById = useMemo(
+    () => new Map(projects.map((p) => [p.id, p])),
+    [projects],
+  );
+  const totalHours = useMemo(
+    () => visibleEntries.reduce((acc, e) => acc + (e.duration || 0), 0) / 3600000,
+    [visibleEntries],
+  );
 
   if (authLoading || (loading && !entries.length)) {
     return (
@@ -81,28 +106,15 @@ export default function ReportsPage() {
     );
   }
 
-  const rangeLabels = {
-    month: "This Month",
-    week: "Last 7 Days",
-  };
-
-  const getStartDate = () => {
-     const now = new Date();
-     if (range === "month") return new Date(now.getFullYear(), now.getMonth(), 1);
-     const d = new Date();
-     d.setDate(d.getDate() - 7);
-     return d;
-  };
-
   return (
     <main className="min-h-screen p-8 bg-background">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+        <header className="flex flex-col gap-4 mb-8 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-3xl font-bold">Reports</h1>
-          
-          <div className="flex gap-4 items-center">
-            <Select 
-              value={projectFilter} 
+
+          <div className="flex flex-wrap gap-4 items-center">
+            <Select
+              value={projectFilter}
               onValueChange={setProjectFilter}
             >
               <SelectTrigger className="w-full sm:w-[200px]">
@@ -115,31 +127,32 @@ export default function ReportsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select 
-              value={range} 
-              onValueChange={setRange}
+            <Select
+              value={range}
+              onValueChange={(value) => setRange(value as RangeKey)}
             >
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-44">
                 <SelectValue placeholder="Select Range" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="week">Last 7 Days</SelectItem>
+                {(Object.keys(RANGE_LABELS) as RangeKey[]).map((key) => (
+                  <SelectItem key={key} value={key}>{RANGE_LABELS[key]}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
-            {entries.length > 0 && (
+            {visibleEntries.length > 0 && period && (
               <PDFDownloadLink
                 document={
-                  <TimesheetPDF 
-                    entries={entries} 
-                    projects={projects} 
-                    startDate={getStartDate()} 
-                    endDate={new Date()}
-                    userName={user.email || 'User'} 
+                  <TimesheetPDF
+                    entries={visibleEntries}
+                    projects={projects}
+                    startDate={period.start}
+                    endDate={period.end}
+                    userName={user.email || 'User'}
                   />
                 }
-                fileName={`timesheet-${range}.pdf`}
+                fileName={`timesheet-${format(period.start, DATE_INPUT_FORMAT)}_${format(period.end, DATE_INPUT_FORMAT)}.pdf`}
               >
                 {/* @ts-ignore */}
                 {({ loading }) => (
@@ -150,13 +163,43 @@ export default function ReportsPage() {
               </PDFDownloadLink>
             )}
           </div>
-        </div>
+        </header>
 
-        {entries.length === 0 ? (
+        {range === "custom" && (
+          <fieldset className="flex flex-wrap gap-4 items-end mb-6">
+            <legend className="sr-only">Custom report period</legend>
+            <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+              From
+              <Input
+                type="date"
+                value={customFrom}
+                max={customTo}
+                onChange={(e) => setCustomFrom(e.target.value)}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+              To
+              <Input
+                type="date"
+                value={customTo}
+                min={customFrom}
+                max={format(new Date(), DATE_INPUT_FORMAT)}
+                onChange={(e) => setCustomTo(e.target.value)}
+              />
+            </label>
+            {!period && (
+              <p role="alert" className="text-sm text-destructive">
+                The start date must be on or before the end date.
+              </p>
+            )}
+          </fieldset>
+        )}
+
+        {visibleEntries.length === 0 ? (
           <Card className="p-12 text-center text-muted-foreground">
             <FileBarChart className="w-16 h-16 mx-auto mb-4 opacity-50" />
             <h2 className="text-xl font-semibold mb-2">No Data Available</h2>
-            <p>Track some time to generate reports.</p>
+            <p>No tracked time in this period.</p>
           </Card>
         ) : (
           <div className="space-y-4">
@@ -164,22 +207,20 @@ export default function ReportsPage() {
              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                <Card className="p-4">
                  <div className="text-sm text-muted-foreground">Total Entries</div>
-                 <div className="text-2xl font-bold">{entries.length}</div>
+                 <div className="text-2xl font-bold">{visibleEntries.length}</div>
                </Card>
                <Card className="p-4">
                  <div className="text-sm text-muted-foreground">Total Hours</div>
                  <div className="text-2xl font-bold">
-                   {(entries.reduce((acc, e) => acc + (e.duration || 0), 0) / 3600000).toFixed(1)}h
+                   {totalHours.toFixed(1)}h
                  </div>
                </Card>
              </div>
-             
+
              {/* List View */}
               <Card className="divide-y divide-border">
-                 {entries
-                   .filter(e => projectFilter === 'all' || e.projectId === projectFilter)
-                   .map(entry => {
-                    const project = projects.find(p => p.id === entry.projectId);
+                 {visibleEntries.map(entry => {
+                    const project = entry.projectId ? projectsById.get(entry.projectId) : undefined;
                     return (
                       <div key={entry.id} className="p-4 flex justify-between items-center text-sm">
                         <div>
