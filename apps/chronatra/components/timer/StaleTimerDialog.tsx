@@ -1,7 +1,7 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
-import { format } from "date-fns";
+import { useId, useRef, useState, type FormEvent } from "react";
+import { addMinutes, format, startOfMinute } from "date-fns";
 import { Button, Input, Modal } from "@repo/ui";
 import { CHRONATRA_SUGGESTED_WORKDAY_MS } from "@repo/core";
 
@@ -29,23 +29,33 @@ export function StaleTimerDialog({ startTime, elapsedMs, onResolve }: StaleTimer
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Blocks a second submit (Enter + click) before the disabled state renders.
+  const submittingRef = useRef(false);
 
+  // datetime-local has minute precision; the earliest valid end is the first
+  // full minute after the start, so the input's own minimum always passes.
+  const earliestEnd = addMinutes(startOfMinute(startTime), 1);
   const hoursRunning = Math.floor(elapsedMs / 3_600_000);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submittingRef.current) return;
+
     const endTime = new Date(value);
-    if (Number.isNaN(endTime.getTime()) || endTime <= startTime || endTime > new Date()) {
-      setError(`Please pick a time between ${format(startTime, "dd.MM. HH:mm")} and now.`);
+    if (Number.isNaN(endTime.getTime()) || endTime < earliestEnd || endTime > new Date()) {
+      setError(`Please pick a time between ${format(earliestEnd, "dd.MM. HH:mm")} and now.`);
       return;
     }
     setError(null);
+    submittingRef.current = true;
     setSaving(true);
     try {
       await onResolve(endTime);
     } catch (e) {
       console.error("Failed to resolve stale timer:", e);
-      setError("Saving failed. Please try again.");
+      setError("Saving failed. Please reload the page and try again.");
+    } finally {
+      submittingRef.current = false;
       setSaving(false);
     }
   };
@@ -70,7 +80,7 @@ export function StaleTimerDialog({ startTime, elapsedMs, onResolve }: StaleTimer
             id={inputId}
             type="datetime-local"
             value={value}
-            min={format(startTime, INPUT_FORMAT)}
+            min={format(earliestEnd, INPUT_FORMAT)}
             max={format(openedAt, INPUT_FORMAT)}
             onChange={(e) => setValue(e.target.value)}
             error={error !== null}

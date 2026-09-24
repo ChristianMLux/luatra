@@ -141,8 +141,13 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
 
   const stopTimer = useCallback(async () => {
     if (!user || !timerState.activeEntryId) return;
-    // A stale timer must not be stopped with "now"; StaleTimerDialog asks for the real end.
-    if (timerState.startTime && isStaleTimer(timerState.startTime.getTime())) return;
+    // A stale timer must not be stopped with "now". Refresh elapsed time so the
+    // StaleTimerDialog opens right away instead of the click silently doing nothing.
+    if (timerState.startTime && isStaleTimer(timerState.startTime.getTime())) {
+      const startMs = timerState.startTime.getTime();
+      setTimerState((prev) => ({ ...prev, elapsedMs: Date.now() - startMs }));
+      return;
+    }
 
     const projectName = timerState.activeProjectName;
 
@@ -159,7 +164,10 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
 
   const resolveStaleTimer = useCallback(
     async (endTime: Date) => {
-      if (!user || !timerState.activeEntryId || !timerState.startTime) return;
+      // Throw instead of returning: the dialog must surface this, not wait forever.
+      if (!user || !timerState.activeEntryId || !timerState.startTime) {
+        throw new Error("No running timer to stop (signed out?)");
+      }
 
       await stopTimeEntry(
         user.uid,

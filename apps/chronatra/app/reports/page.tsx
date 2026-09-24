@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useId } from "react";
 import { format, startOfMonth, subMonths } from "date-fns";
 import { useAuth } from "@repo/core";
 import { Card, Input, Skeleton, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Button } from "@repo/ui";
@@ -31,6 +31,8 @@ export default function ReportsPage() {
   );
   const [customTo, setCustomTo] = useState(() => format(new Date(), DATE_INPUT_FORMAT));
   const [projectFilter, setProjectFilter] = useState("all");
+  const fromId = useId();
+  const toId = useId();
 
   const period = useMemo(
     () => resolveRange(range, customFrom, customTo, new Date()),
@@ -168,25 +170,27 @@ export default function ReportsPage() {
         {range === "custom" && (
           <fieldset className="flex flex-wrap gap-4 items-end mb-6">
             <legend className="sr-only">Custom report period</legend>
-            <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-              From
+            <div className="flex flex-col gap-1">
+              <label htmlFor={fromId} className="text-sm text-muted-foreground">From</label>
               <Input
+                id={fromId}
                 type="date"
                 value={customFrom}
                 max={customTo}
                 onChange={(e) => setCustomFrom(e.target.value)}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-              To
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor={toId} className="text-sm text-muted-foreground">To</label>
               <Input
+                id={toId}
                 type="date"
                 value={customTo}
                 min={customFrom}
                 max={format(new Date(), DATE_INPUT_FORMAT)}
                 onChange={(e) => setCustomTo(e.target.value)}
               />
-            </label>
+            </div>
             {!period && (
               <p role="alert" className="text-sm text-destructive">
                 The start date must be on or before the end date.
