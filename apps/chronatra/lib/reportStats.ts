@@ -62,9 +62,10 @@ export function hoursAboveTarget(weeks: WeekSummary[]): number {
   return weeks.reduce((acc, week) => acc + Math.max(0, week.diffHours), 0);
 }
 
-/** "+3.5 h", "−2.0 h", or "partial week" when a shortfall isn't meaningful. */
+/** "+3.5 h", "-2.0 h", or "partial week" when a shortfall isn't meaningful. */
 export function formatWeekDiff(week: WeekSummary): string {
   if (week.partial && week.diffHours < 0) return "partial week";
-  const sign = week.diffHours >= 0 ? "+" : "−";
+  // ASCII hyphen: the PDF's standard Helvetica has no U+2212 and drops it silently.
+  const sign = week.diffHours >= 0 ? "+" : "-";
   return `${sign}${Math.abs(week.diffHours).toFixed(1)} h`;
 }
