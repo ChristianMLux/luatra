@@ -1,0 +1,66 @@
+rules_version = '2';
+
+// Every user document carries `userId`, and every client query filters on it
+// (`where("userId", "==", uid)`). Access is limited to the signed-in owner.
+// Anything not matched below is denied. Admin/CLI access (IAM) is unaffected.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Read, update and delete an existing document the caller owns.
+    function ownsDoc() {
+      return signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Create a document stamped with the caller's own uid.
+    function createsOwn() {
+      return signedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Updates must not move a document to another owner.
+    function keepsOwner() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+    // Owner-only CRUD for a user collection.
+    match /jobs/{docId} {
+      allow read, delete: if ownsDoc();
+      allow create: if createsOwn();
+      allow update: if ownsDoc() && keepsOwner();
+    }
+
+    match /profiles/{docId} {
+      allow read, delete: if ownsDoc();
+      allow create: if createsOwn();
+      allow update: if ownsDoc() && keepsOwner();
+    }
+
+    match /generatedCVs/{docId} {
+      allow read, delete: if ownsDoc();
+      allow create: if createsOwn();
+      allow update: if ownsDoc() && keepsOwner();
+    }
+
+    // Chronatra time tracking. Time entries are working-hours evidence.
+    match /apps/chronatra/timeEntries/{docId} {
+      allow read, delete: if ownsDoc();
+      allow create: if createsOwn();
+      allow update: if ownsDoc() && keepsOwner();
+    }
+
+    match /apps/chronatra/projects/{docId} {
+      allow read, delete: if ownsDoc();
+      allow create: if createsOwn();
+      allow update: if ownsDoc() && keepsOwner();
+    }
+
+    // Activity feed for the Hub: append-only, nothing in the apps edits or deletes it.
+    match /activities/{docId} {
+      allow read: if ownsDoc();
+      allow create: if createsOwn();
+    }
+  }
+}
