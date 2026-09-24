@@ -29,6 +29,14 @@ interface AuthContextType {
   userData: Record<string, unknown> | null;
   token: string | null;
   loading: boolean;
+  /**
+   * True once this app itself is signed in to Firebase Auth. A user restored
+   * only from the shared "site-auth" cookie is NOT enough for Firestore: the
+   * security rules see an unauthenticated request until this is true.
+   */
+  hasFirebaseSession: boolean;
+  /** Firebase Auth has reported its initial state (signed in or not). */
+  firebaseResolved: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -39,6 +47,8 @@ const AuthContext = createContext<AuthContextType>({
   userData: null,
   token: null,
   loading: true,
+  hasFirebaseSession: false,
+  firebaseResolved: false,
   signInWithGoogle: async () => {},
   signOut: async () => {},
   refreshProfile: async () => {},
@@ -49,6 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userData, setUserData] = useState<Record<string, unknown> | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasFirebaseSession, setHasFirebaseSession] = useState(false);
+  const [firebaseResolved, setFirebaseResolved] = useState(false);
   const router = useRouter();
 
   const fetchUserProfile = async (token: string) => {
@@ -102,6 +114,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // NORMAL PATH: Firebase listener for full auth sync
     const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+      setHasFirebaseSession(firebaseUser !== null);
+      setFirebaseResolved(true);
       if (firebaseUser) {
         // Firebase is active - update with fresh data
         const newUser = {
@@ -175,7 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userData, token, loading, signInWithGoogle, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, userData, token, loading, hasFirebaseSession, firebaseResolved, signInWithGoogle, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

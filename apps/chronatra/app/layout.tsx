@@ -4,6 +4,7 @@ import { AuthProvider, ThemeProvider } from "@repo/core";
 import { Toaster, ScrollProgress } from "@repo/ui";
 import { Navbar } from "@/components/layout/Navbar";
 import { TimerProvider } from "@/lib/context/TimerContext";
+import { FirebaseSessionGate } from "@/components/auth/FirebaseSessionGate";
 import "@repo/ui/global.css";
 import "./globals.css";
 
@@ -31,12 +32,14 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider>
           <AuthProvider>
-            <TimerProvider>
-              <ScrollProgress alwaysVisible />
-              <Navbar />
-              {children}
-              <Toaster />
-            </TimerProvider>
+            <FirebaseSessionGate>
+              <TimerProvider>
+                <ScrollProgress alwaysVisible />
+                <Navbar />
+                {children}
+                <Toaster />
+              </TimerProvider>
+            </FirebaseSessionGate>
           </AuthProvider>
         </ThemeProvider>
       </body>
