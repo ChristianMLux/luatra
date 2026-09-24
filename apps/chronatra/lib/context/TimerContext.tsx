@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { Timestamp, getDoc, doc } from "firebase/firestore";
 import { useAuth, db, isStaleTimer } from "@repo/core"; // db is exported from core as well, or use local
-import { TimerState, TimeEntry } from "../types";
+import { TimerState } from "../types";
 import { addTimeEntry, stopTimeEntry, getRunningEntry } from "../services/timeEntryService";
 import { StaleTimerDialog } from "@/components/timer/StaleTimerDialog";
 

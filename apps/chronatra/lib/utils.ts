@@ -1,5 +1,5 @@
 import { Timestamp } from 'firebase/firestore';
-import { formatDistanceStrict, format, differenceInSeconds } from 'date-fns';
+import { formatDistanceStrict, format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
 /**
