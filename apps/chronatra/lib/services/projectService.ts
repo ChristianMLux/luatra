@@ -40,7 +40,7 @@ export const getProjects = async (
   userId: string,
   includeArchived = false,
 ): Promise<Project[]> => {
-  let q = query(
+  const q = query(
     collection(db, COLLECTION_PATH),
     where('userId', '==', userId),
     orderBy('name', 'asc'),

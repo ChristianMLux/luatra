@@ -28,7 +28,7 @@ export const addTimeEntry = async (
 ): Promise<string> => {
   // Remove undefined values
   const cleanData = Object.fromEntries(
-    Object.entries(entryData).filter(([_, v]) => v !== undefined)
+    Object.entries(entryData).filter(([, v]) => v !== undefined)
   );
 
   const docRef = await addDoc(collection(db, COLLECTION_PATH), {

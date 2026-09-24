@@ -1,9 +1,17 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { format } from 'date-fns';
 import { TimeEntry, Project } from '@/lib/types';
-import { formatTime, formatDate } from '@/lib/utils'; // You might need to duplicate specific utils if these use DOM/canvas
+import {
+  WEEKLY_TARGET_HOURS,
+  entryDate,
+  formatWeekDiff,
+  hoursAboveTarget,
+  summarizeWeeks,
+} from '@/lib/reportStats';
 
-// Create styles
+const BORDER = '#EEEEEE';
+
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
@@ -14,7 +22,7 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: BORDER,
     paddingBottom: 10,
   },
   title: {
@@ -43,69 +51,65 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
+  sectionTitle: {
+    fontSize: 13,
+    marginTop: 20,
+    marginBottom: 8,
+    color: '#111111',
+  },
   table: {
-    display: 'flex',
     width: 'auto',
     borderStyle: 'solid',
     borderWidth: 1,
     borderRightWidth: 0,
     borderBottomWidth: 0,
-    borderColor: '#EEEEEE',
+    borderColor: BORDER,
   },
   tableRow: {
-    margin: 'auto',
     flexDirection: 'row',
   },
-  tableColHeader: {
-    width: '20%',
+  cell: {
     borderStyle: 'solid',
     borderWidth: 1,
     borderLeftWidth: 0,
     borderTopWidth: 0,
-    borderColor: '#EEEEEE',
+    borderColor: BORDER,
+    padding: 5,
+  },
+  headerCell: {
     backgroundColor: '#F9FAFB',
-    padding: 5,
   },
-  tableColDescription: {
-    width: '40%',
-    borderStyle: 'solid',
-    borderWidth: 1,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderColor: '#EEEEEE',
-    backgroundColor: '#F9FAFB',
-    padding: 5,
+  cellText: {
+    fontSize: 9,
+    color: '#333333',
   },
-  tableCol: {
-    width: '20%',
-    borderStyle: 'solid',
-    borderWidth: 1,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderColor: '#EEEEEE',
-    padding: 5,
-  },
-  tableColDesc: {
-    width: '40%',
-    borderStyle: 'solid',
-    borderWidth: 1,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderColor: '#EEEEEE',
-    padding: 5,
-  },
-  tableCellHeader: {
-    margin: 2,
-    fontSize: 10,
+  headerText: {
+    fontSize: 9,
     fontWeight: 'bold',
     color: '#444444',
   },
-  tableCell: {
-    margin: 2,
-    fontSize: 10,
-    color: '#333333',
+  note: {
+    fontSize: 8,
+    color: '#666666',
+    marginTop: 6,
   },
 });
+
+// Column widths per table; each set adds up to 100%.
+const ENTRY_COLUMNS = ['13%', '9%', '9%', '17%', '38%', '14%'];
+const WEEK_COLUMNS = ['50%', '25%', '25%'];
+
+function Row({ cells, widths, header = false }: { cells: string[]; widths: string[]; header?: boolean }) {
+  return (
+    <View style={styles.tableRow} wrap={false}>
+      {cells.map((text, i) => (
+        <View key={i} style={[styles.cell, { width: widths[i] }, header ? styles.headerCell : {}]}>
+          <Text style={header ? styles.headerText : styles.cellText}>{text}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
 
 interface TimesheetPDFProps {
   entries: TimeEntry[];
@@ -115,18 +119,20 @@ interface TimesheetPDFProps {
   userName?: string;
 }
 
+const formatDuration = (ms: number) => {
+  const hours = Math.floor(ms / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+  return `${hours}h ${minutes}m`;
+};
+
 const TimesheetPDF = ({ entries, projects, startDate, endDate, userName }: TimesheetPDFProps) => {
   const totalDuration = entries.reduce((acc, entry) => acc + (entry.duration || 0), 0);
-  
-  // Format seconds helper
-  const formatDuration = (ms: number) => {
-    const hours = Math.floor(ms / 3600000);
-    const minutes = Math.floor((ms % 3600000) / 60000);
-    return `${hours}h ${minutes}m`;
-  };
-
-  const formattedStart = startDate.toLocaleDateString();
-  const formattedEnd = endDate.toLocaleDateString();
+  const projectNames = new Map(projects.map((p) => [p.id, p.name]));
+  const weeks = summarizeWeeks(entries, { start: startDate, end: endDate });
+  // Chronological order reads like a timesheet; the app lists newest first.
+  const rows = [...entries].sort(
+    (a, b) => (entryDate(a.startTime)?.getTime() ?? 0) - (entryDate(b.startTime)?.getTime() ?? 0),
+  );
 
   return (
     <Document>
@@ -134,7 +140,9 @@ const TimesheetPDF = ({ entries, projects, startDate, endDate, userName }: Times
         <View style={styles.header}>
           <Text style={styles.title}>Timesheet Report</Text>
           <Text style={styles.subtitle}>Generated for: {userName || 'User'}</Text>
-          <Text style={styles.subtitle}>Period: {formattedStart} - {formattedEnd}</Text>
+          <Text style={styles.subtitle}>
+            Period: {format(startDate, 'dd.MM.yyyy')} - {format(endDate, 'dd.MM.yyyy')}
+          </Text>
         </View>
 
         <View style={styles.stats}>
@@ -146,57 +154,54 @@ const TimesheetPDF = ({ entries, projects, startDate, endDate, userName }: Times
             <Text style={styles.statLabel}>Total Entries</Text>
             <Text style={styles.statValue}>{entries.length}</Text>
           </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Hours above {WEEKLY_TARGET_HOURS} h/week</Text>
+            <Text style={styles.statValue}>{hoursAboveTarget(weeks).toFixed(1)} h</Text>
+          </View>
         </View>
 
         <View style={styles.table}>
-          <View style={styles.tableRow}>
-            <View style={styles.tableColHeader}>
-              <Text style={styles.tableCellHeader}>Date</Text>
-            </View>
-            <View style={styles.tableColHeader}>
-              <Text style={styles.tableCellHeader}>Project</Text>
-            </View>
-            <View style={styles.tableColDescription}>
-              <Text style={styles.tableCellHeader}>Description</Text>
-            </View>
-            <View style={styles.tableColHeader}>
-              <Text style={styles.tableCellHeader}>Duration</Text>
-            </View>
-          </View>
-          
-          {entries.map((entry) => {
-             const project = projects.find(p => p.id === entry.projectId);
-             // handle Firestore Timestamp safely
-             const date = (entry.startTime as any).toDate 
-                ? (entry.startTime as any).toDate() 
-                : new Date(entry.startTime as any);
-             
-             return (
-              <View style={styles.tableRow} key={entry.id}>
-                <View style={styles.tableCol}>
-                  <Text style={styles.tableCell}>{date.toLocaleDateString()}</Text>
-                </View>
-                <View style={styles.tableCol}>
-                  <Text style={styles.tableCell}>{project?.name || '-'}</Text>
-                </View>
-                <View style={styles.tableColDesc}>
-                  <Text style={styles.tableCell}>{entry.description || 'No description'}</Text>
-                </View>
-                <View style={styles.tableCol}>
-                  <Text style={styles.tableCell}>
-                    {formatDuration(entry.duration || 0)}{entry.correction ? ' *' : ''}
-                  </Text>
-                </View>
-              </View>
-             );
+          <Row header widths={ENTRY_COLUMNS} cells={['Date', 'Start', 'End', 'Project', 'Description', 'Duration']} />
+          {rows.map((entry) => {
+            const start = entryDate(entry.startTime);
+            const end = entryDate(entry.endTime);
+            return (
+              <Row
+                key={entry.id}
+                widths={ENTRY_COLUMNS}
+                cells={[
+                  start ? format(start, 'dd.MM.yyyy') : '-',
+                  start ? format(start, 'HH:mm') : '-',
+                  end ? format(end, 'HH:mm') : '-',
+                  (entry.projectId && projectNames.get(entry.projectId)) || '-',
+                  entry.description || 'No description',
+                  `${formatDuration(entry.duration || 0)}${entry.correction ? ' *' : ''}`,
+                ]}
+              />
+            );
           })}
         </View>
 
         {entries.some((entry) => entry.correction) && (
-          <Text style={styles.tableCell}>
+          <Text style={styles.note}>
             * End time entered afterwards because the timer was left running.
           </Text>
         )}
+
+        <Text style={styles.sectionTitle}>Weekly overview</Text>
+        <View style={styles.table}>
+          <Row header widths={WEEK_COLUMNS} cells={['Week', 'Hours', `vs. ${WEEKLY_TARGET_HOURS} h`]} />
+          {weeks.map((week) => (
+            <Row
+              key={week.weekStart.getTime()}
+              widths={WEEK_COLUMNS}
+              cells={[week.label, formatDuration(week.totalMs), formatWeekDiff(week)]}
+            />
+          ))}
+        </View>
+        <Text style={styles.note}>
+          Target {WEEKLY_TARGET_HOURS} h per full week; public holidays and vacation are not deducted. Durations run from start to end of each entry, so breaks taken without stopping the timer are included.
+        </Text>
       </Page>
     </Document>
   );

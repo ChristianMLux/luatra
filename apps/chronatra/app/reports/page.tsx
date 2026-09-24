@@ -11,6 +11,7 @@ import { Project, TimeEntry } from "@/lib/types";
 import dynamic from "next/dynamic";
 import TimesheetPDF from "@/components/reports/TimesheetPDF";
 import { DATE_INPUT_FORMAT, RANGE_LABELS, resolveRange, type RangeKey } from "@/lib/reportRange";
+import { WEEKLY_TARGET_HOURS, formatWeekDiff, hoursAboveTarget, summarizeWeeks } from "@/lib/reportStats";
 
 const PDFDownloadLink = dynamic(
   () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
@@ -86,6 +87,10 @@ export default function ReportsPage() {
     () => visibleEntries.reduce((acc, e) => acc + (e.duration || 0), 0) / 3600000,
     [visibleEntries],
   );
+  const weeks = useMemo(
+    () => (period ? summarizeWeeks(visibleEntries, period) : []),
+    [visibleEntries, period],
+  );
 
   if (authLoading || (loading && !entries.length)) {
     return (
@@ -156,7 +161,6 @@ export default function ReportsPage() {
                 }
                 fileName={`timesheet-${format(period.start, DATE_INPUT_FORMAT)}_${format(period.end, DATE_INPUT_FORMAT)}.pdf`}
               >
-                {/* @ts-ignore */}
                 {({ loading }) => (
                   <Button disabled={loading}>
                     {loading ? "Generating..." : "Export PDF"}
@@ -219,7 +223,45 @@ export default function ReportsPage() {
                    {totalHours.toFixed(1)}h
                  </div>
                </Card>
+               <Card className="p-4">
+                 <div className="text-sm text-muted-foreground">Above {WEEKLY_TARGET_HOURS} h/week</div>
+                 <div className="text-2xl font-bold">
+                   {hoursAboveTarget(weeks).toFixed(1)}h
+                 </div>
+               </Card>
              </div>
+
+             <section aria-labelledby="weekly-overview-heading">
+               <Card className="p-4">
+                 <h2 id="weekly-overview-heading" className="text-sm font-medium text-muted-foreground mb-3">
+                   Weekly overview (target {WEEKLY_TARGET_HOURS} h)
+                 </h2>
+                 <table className="w-full text-sm">
+                   <thead className="sr-only">
+                     <tr>
+                       <th scope="col">Week</th>
+                       <th scope="col">Hours</th>
+                       <th scope="col">Difference to target</th>
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y divide-border">
+                     {weeks.map((week) => (
+                       <tr key={week.weekStart.getTime()}>
+                         <td className="py-2">{week.label}</td>
+                         <td className="py-2 text-right font-mono">{(week.totalMs / 3600000).toFixed(1)}h</td>
+                         <td
+                           className={`py-2 text-right font-mono ${
+                             week.diffHours > 0 ? "text-destructive" : "text-muted-foreground"
+                           }`}
+                         >
+                           {formatWeekDiff(week)}
+                         </td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </Card>
+             </section>
 
              {/* List View */}
               <Card className="divide-y divide-border">
